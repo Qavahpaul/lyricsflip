@@ -19,5 +19,37 @@
     "lint": "npm run lint:frontend && npm run lint:backend",
     "test:backend": "npm --prefix backend run test",
     "test:e2e:frontend": "npm --prefix frontend run test:e2e"
+  "private": true,
+  "engines": {
+    "node": ">=20.18.0 <21"
+  },
+  "scripts": {
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@nestjs/platform-socket.io": "^11.0.10",
+    "@nestjs/swagger": "^11.0.2",
+    "@nestjs/throttler": "^6.4.0",
+    "@nestjs/websockets": "^11.0.10",
+    "@react-navigation/drawer": "^7.1.1",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0"
+  },
+  "lint-staged": {
+    "frontend/**/*.{ts,tsx,js,jsx}": [
+      "npm --prefix frontend exec -- eslint --fix",
+      "npm --prefix frontend exec -- prettier --write"
+    ],
+    "backend/**/*.ts": [
+      "npm --prefix backend exec -- prettier --write"
+    ],
+    "onchain/**/*.rs": [
+      "bash -c 'cd onchain && cargo fmt'"
+    ]
   }
 }

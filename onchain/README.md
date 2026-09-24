@@ -187,7 +187,7 @@ cd onchain
 
 ### `scripts/seed-cards.sh`
 
-Reads `seed/cards.json` (≥ 5 cards per genre, using original and
+Reads `seed/songs.json` (≥ 5 cards per genre, using original and
 public-domain lyric snippets) and calls `add_card` for every entry.  Run
 after `deploy.sh` so the contract IDs are already in `frontend/.env.local`.
 

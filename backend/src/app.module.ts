@@ -41,6 +41,7 @@ import { ReferralModule } from './referral/referral.module';
 import { GameInsightsModule } from './game-insights/game-insights.module';
 import { PaginationModule } from './common/pagination/pagination.module';
 import { StateRecoveryModule } from './state-recovery/state-recovery.module';
+import { IndexerModule } from './indexer/indexer.module';
 
 @Module({
   imports: [
@@ -97,6 +98,7 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
     ReferralModule,
     StateRecoveryModule,
     GameInsightsModule,
+    IndexerModule,
   ],
   controllers: [AppController],
   providers: [

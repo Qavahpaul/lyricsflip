@@ -532,7 +532,7 @@ Contributions are welcome! Please read [`ContributionGuidelines.md`](Contributio
 3. Keep PRs focused. Include a clear description, link the issue, and show test evidence or screenshots.
 4. Make sure `cargo fmt --check && cargo test` (contracts) and `npm run lint && npm test` (frontend/backend) pass.
 
-Design references: [Figma](https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=0-1&t=0U8SlbaJijr7XNeG-1), [`docs/design-handoff.md`](docs/design-handoff.md), [`designs.md`](designs.md), [`user-profile-design.md`](user-profile-design.md).
+Design references: [Figma](https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=0-1&t=0U8SlbaJijr7XNeG-1), [`docs/design/`](docs/README.md).
 
 ---
 

@@ -102,7 +102,7 @@ export default function CreateChallenge() {
         return;
       }
       const roundId = await systemCalls.createRound(genre);
-      router.push(`/multiplayer?roundId=${roundId}`);
+      router.push(`/multiplayer/${roundId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create challenge');
     } finally {

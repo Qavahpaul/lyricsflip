@@ -1,37 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useGameTimer } from '@/features/game/hooks/useGameTimer';
+import { io, type Socket } from 'socket.io-client';
+import type {
+  ClientToServerEvents,
+  RoomData,
+  ServerToClientEvents,
+} from '@/types/realtime';
 
-// Define types for our room data
-export interface Player {
-  id: string;
-  name: string;
-  score: number;
-}
-
-export interface RoomData {
-  id: string;
-  name: string;
-  description: string;
-  timeLeft: string;
-  potWin: string;
-  scores: number;
-  players: Player[];
-  currentLyric: {
-    text: string;
-    title?: string;
-    artist?: string;
-  };
-  songOptions: {
-    title: string;
-    artist: string;
-  }[];
-}
+export type { Player, RoomData } from '@/types/realtime';
 
 export interface UseMultiplayerRoomProps {
   roomId: string;
   playerName: string;
+  /** Auth token sent in the Socket.IO handshake (LF-093). */
+  token?: string | null;
 }
 
 // Define WebSocket message event type
@@ -76,182 +59,34 @@ class MockWebSocket {
   onclose: (() => void) | null = null;
   onerror: ((error: any) => void) | null = null;
   readyState = 1; // WebSocket.OPEN
+type RoomSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-  constructor(url: string) {
-    console.log('MockWebSocket created');
-    // Simulate connection open immediately
-    setTimeout(() => {
-      console.log('MockWebSocket onopen firing');
-      if (this.onopen) this.onopen();
-
-      // Send initial room data immediately
-      console.log('MockWebSocket sending room data');
-      if (this.onmessage) {
-        this.onmessage({
-          data: JSON.stringify({
-            type: 'ROOM_DATA',
-            payload: mockRoomData,
-          }),
-        });
-      }
-    }, 100); // Reduced delay to 100ms
-  }
-
-  send(data: string) {
-    console.log('MockWebSocket send:', data);
-    const parsedData = JSON.parse(data);
-
-    // Handle different message types
-    switch (parsedData.type) {
-      case 'SELECT_SONG':
-        // Simulate selecting a song
-        setTimeout(() => {
-          if (this.onmessage) {
-            // Update scores
-            const updatedScores = mockRoomData.scores + 10;
-            this.onmessage({
-              data: JSON.stringify({
-                type: 'SCORE_UPDATE',
-                payload: {
-                  playerId: 'player1',
-                  score: 130,
-                  totalScore: updatedScores,
-                },
-              }),
-            });
-
-            // Send new lyric after selection
-            setTimeout(() => {
-              if (this.onmessage) {
-                this.onmessage({
-                  data: JSON.stringify({
-                    type: 'NEW_LYRIC',
-                    payload: {
-                      lyric: {
-                        text: '"New lyric after selection"',
-                        title: 'New Song',
-                        artist: 'New Artist',
-                      },
-                      songOptions: mockRoomData.songOptions,
-                    },
-                  }),
-                });
-              }
-            }, 500);
-          }
-        }, 300);
-        break;
-
-      case 'LEAVE_ROOM':
-        // Do nothing for now
-        break;
-    }
-  }
-
-  close() {
-    if (this.onclose) this.onclose();
-  }
-}
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
 
 export function useMultiplayerRoom({
   roomId,
   playerName,
+  token,
 }: UseMultiplayerRoomProps) {
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const socketRef = useRef<RoomSocket | null>(null);
 
-  // Always use mock WebSocket for now to ensure it works
-  const [useMockWebSocket] = useState(true);
-
-  // Use a ref for the socket to avoid re-renders when it changes
-  const socketRef = useRef<WebSocket | MockWebSocket | null>(null);
-
-  // Connect to the WebSocket server
   useEffect(() => {
-    console.log('Setting up WebSocket connection');
+    if (!roomId) return;
 
-    // Create a mock WebSocket
-    const ws = new MockWebSocket(`mock://rooms/${roomId}`);
+    const socket: RoomSocket = io(WS_URL, {
+      auth: token ? { token } : undefined,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+    });
+    socketRef.current = socket;
 
-    ws.onopen = () => {
-      console.log('WebSocket connection opened');
-      setIsConnected(true);
-    };
-
-    ws.onmessage = (event: WebSocketMessageEvent) => {
-      console.log('WebSocket message received:', event.data);
-      try {
-        const data = JSON.parse(event.data);
-
-        switch (data.type) {
-          case 'ROOM_DATA':
-            console.log('Setting room data:', data.payload);
-            setRoomData(data.payload);
-            break;
-          case 'PLAYER_JOINED':
-            setRoomData((prevData) => {
-              if (!prevData) return prevData;
-              return {
-                ...prevData,
-                players: [...prevData.players, data.payload],
-              };
-            });
-            break;
-          case 'PLAYER_LEFT':
-            setRoomData((prevData) => {
-              if (!prevData) return prevData;
-              return {
-                ...prevData,
-                players: prevData.players.filter(
-                  (player) => player.id !== data.payload.playerId,
-                ),
-              };
-            });
-            break;
-          case 'SCORE_UPDATE':
-            setRoomData((prevData) => {
-              if (!prevData) return prevData;
-              return {
-                ...prevData,
-                players: prevData.players.map((player) =>
-                  player.id === data.payload.playerId
-                    ? { ...player, score: data.payload.score }
-                    : player,
-                ),
-                scores: data.payload.totalScore,
-              };
-            });
-            break;
-          case 'TIME_UPDATE':
-            setRoomData((prevData) => {
-              if (!prevData) return prevData;
-              return {
-                ...prevData,
-                timeLeft: data.payload.timeLeft,
-              };
-            });
-            break;
-          case 'NEW_LYRIC':
-            setRoomData((prevData) => {
-              if (!prevData) return prevData;
-              return {
-                ...prevData,
-                currentLyric: data.payload.lyric,
-                songOptions: data.payload.songOptions,
-              };
-            });
-            break;
-          case 'ERROR':
-            setError(data.payload.message);
-            break;
-          default:
-            console.log('Unknown message type:', data.type);
-        }
-      } catch (err) {
-        console.error('Error parsing WebSocket message:', err);
-      }
-    };
+    const update = (fn: (prev: RoomData) => RoomData) =>
+      setRoomData((prev) => (prev ? fn(prev) : prev));
 
     ws.onclose = () => {
       console.log('WebSocket connection closed');
@@ -275,63 +110,68 @@ export function useMultiplayerRoom({
         setRoomData({ ...mockRoomData, id: roomId });
       }
     }, 2000);
+    socket.on('connect', () => {
+      setIsConnected(true);
+      setError(null);
+      // Re-join on every (re)connect so the server restores room membership.
+      socket.emit('join_room', { roomId, playerName });
+    });
+    socket.on('disconnect', () => setIsConnected(false));
+    socket.on('connect_error', () =>
+      setError('Failed to connect to the game server'),
+    );
 
-    // Cleanup function
+    socket.on('room_data', (payload) => setRoomData(payload));
+    socket.on('player_joined', (player) =>
+      update((prev) => ({
+        ...prev,
+        players: [...prev.players.filter((p) => p.id !== player.id), player],
+      })),
+    );
+    socket.on('player_left', ({ playerId }) =>
+      update((prev) => ({
+        ...prev,
+        players: prev.players.filter((p) => p.id !== playerId),
+      })),
+    );
+    socket.on('score_update', ({ playerId, score, totalScore }) =>
+      update((prev) => ({
+        ...prev,
+        players: prev.players.map((p) =>
+          p.id === playerId ? { ...p, score } : p,
+        ),
+        scores: totalScore,
+      })),
+    );
+    socket.on('time_update', ({ timeLeft }) =>
+      update((prev) => ({ ...prev, timeLeft })),
+    );
+    socket.on('new_lyric', ({ lyric, songOptions }) =>
+      update((prev) => ({ ...prev, currentLyric: lyric, songOptions })),
+    );
+    socket.on('room_error', ({ message }) => setError(message));
+
     return () => {
-      clearTimeout(fallbackTimer);
-      if (socketRef.current) {
-        try {
-          socketRef.current.close();
-        } catch (err) {
-          console.error('Error closing WebSocket:', err);
-        }
-      }
+      socket.removeAllListeners();
+      socket.disconnect();
+      socketRef.current = null;
     };
-  }, [roomId, playerName]); // Removed useMockWebSocket from dependencies
+  }, [roomId, playerName, token]);
 
-  // Function to select a song
   const selectSong = useCallback(
     (songIndex: number) => {
-      const socket = socketRef.current;
-      if (socket && isConnected) {
-        try {
-          socket.send(
-            JSON.stringify({
-              type: 'SELECT_SONG',
-              payload: {
-                roomId,
-                songIndex,
-              },
-            }),
-          );
-        } catch (err) {
-          console.error('Error sending song selection:', err);
-        }
-      }
+      socketRef.current?.emit('select_song', { roomId, songIndex });
     },
-    [isConnected, roomId],
+    [roomId],
   );
 
-  // Function to leave the room
   const leaveRoom = useCallback(() => {
     const socket = socketRef.current;
-    if (socket && isConnected) {
-      try {
-        socket.send(
-          JSON.stringify({
-            type: 'LEAVE_ROOM',
-            payload: {
-              roomId,
-            },
-          }),
-        );
-        socket.close();
-      } catch (err) {
-        console.error('Error leaving room:', err);
-      }
-      socketRef.current = null;
-    }
-  }, [isConnected, roomId]);
+    if (!socket) return;
+    socket.emit('leave_room', { roomId });
+    socket.disconnect();
+    socketRef.current = null;
+  }, [roomId]);
 
   return {
     roomData,

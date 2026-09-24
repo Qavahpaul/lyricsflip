@@ -126,7 +126,7 @@ export function WagerModal() {
         });
 
         closeModal();
-        router.push('/single-player');
+        router.push(`/single-player?roundId=${result}`);
         setWagerDetails({
           genre: '',
           difficulty: '',

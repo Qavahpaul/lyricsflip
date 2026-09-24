@@ -7,8 +7,8 @@ import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import type { Round } from '@/lib/stellar/types';
+import { useCallback, useEffect, useState } from 'react';
+import { Answer, type Card, type QuestionCard, type Round } from '@/lib/stellar/types';
 
 interface SongOption {
   title: string;
@@ -23,18 +23,32 @@ export default function SinglePlayerGame() {
   const [round, setRound] = useState<Round | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentLyric, setCurrentLyric] = useState<{
-    text: string;
-    title: string;
-    artist: string;
-    options: SongOption[];
-  } | null>(null);
+  const [card, setCard] = useState<Card | null>(null);
+  const [question, setQuestion] = useState<QuestionCard | null>(null);
+  const [totalCards, setTotalCards] = useState(0);
+  const [answeredCount, setAnsweredCount] = useState(0);
+  const [txStatus, setTxStatus] = useState<string | null>(null);
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [selectedOption, setSelectedOption] = useState<SongOption | null>(null);
   const [correctOption, setCorrectOption] = useState<SongOption | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes default
+
+  const loadNextCard = useCallback(async () => {
+    if (!systemCalls || !roundId) return;
+    const id = BigInt(roundId);
+    setSelectedOption(null);
+    setCorrectOption(null);
+    setIsCardFlipped(false);
+    setTxStatus('Drawing next card…');
+    const nextCard = await systemCalls.nextCard(id);
+    setTxStatus('Building question…');
+    const questionCard = await systemCalls.buildQuestionCard(nextCard, 'Title');
+    setCard(nextCard);
+    setQuestion(questionCard);
+    setTxStatus(null);
+  }, [roundId, systemCalls]);
 
   useEffect(() => {
     const fetchRoundData = async () => {
@@ -43,35 +57,38 @@ export default function SinglePlayerGame() {
         return;
       }
 
-      if (roundId) {
-        try {
-          const roundData = await systemCalls.getRound(BigInt(roundId));
-          setRound(roundData);
-          setIsGameStarted(true);
+      if (!roundId) {
+        setIsLoading(false);
+        return;
+      }
 
-          // TODO: Fetch current lyric from the contract
-          // For now, using mock data
-          setCurrentLyric({
-            text: "Sample lyric text",
-            title: "Sample Song",
-            artist: "Sample Artist",
-            options: [
-              { title: "Sample Song", artist: "Sample Artist" },
-              { title: "Wrong Song 1", artist: "Wrong Artist 1" },
-              { title: "Wrong Song 2", artist: "Wrong Artist 2" },
-              { title: "Wrong Song 3", artist: "Wrong Artist 3" }
-            ]
-          });
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to get round data');
-        } finally {
-          setIsLoading(false);
+      try {
+        const id = BigInt(roundId);
+        let roundData = await systemCalls.getRound(id);
+        if (!roundData.is_started) {
+          // Single-player rounds start as soon as the creator is ready.
+          setTxStatus('Starting round…');
+          await systemCalls.startRound(id);
+          roundData = await systemCalls.getRound(id);
         }
+        const cards = await systemCalls.getRoundCards(id);
+        setRound(roundData);
+        setTotalCards(cards.length);
+        setAnsweredCount(roundData.next_card_index);
+        setIsGameStarted(true);
+        if (roundData.next_card_index < cards.length) {
+          await loadNextCard();
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to get round data');
+      } finally {
+        setTxStatus(null);
+        setIsLoading(false);
       }
     };
 
     fetchRoundData();
-  }, [roundId, systemCalls]);
+  }, [roundId, systemCalls, loadNextCard]);
 
   useEffect(() => {
     if (isGameStarted && timeLeft > 0) {
@@ -82,22 +99,40 @@ export default function SinglePlayerGame() {
     }
   }, [isGameStarted, timeLeft]);
 
-  const handleSongSelect = async (option: SongOption, index: number) => {
-    if (!round) return;
-    
+  const options: SongOption[] = question
+    ? [question.option_one, question.option_two, question.option_three, question.option_four].map(
+        (title) => ({ title, artist: '' }),
+      )
+    : [];
+  const isRoundFinished = totalCards > 0 && answeredCount >= totalCards;
+
+  const handleSongSelect = async (option: SongOption) => {
+    if (!round || !card || !systemCalls || selectedOption) return;
+
     setSelectedOption(option);
-    setIsCardFlipped(true);
-    
     try {
-      // TODO: Implement answer submission against the contract
-      // For now, just check if the option matches the current lyric
-      const isCorrect = option.title === currentLyric?.title && option.artist === currentLyric?.artist;
-      setCorrectOption(option);
+      setTxStatus('Submitting answer…');
+      const isCorrect = await systemCalls.submitAnswer(round.round_id, Answer.title(option.title));
+      setCorrectOption(isCorrect ? option : { title: card.title, artist: card.artist });
       if (isCorrect) {
         setScore(prev => prev + 1);
       }
+      setAnsweredCount(prev => prev + 1);
+      setIsCardFlipped(true);
     } catch (err) {
+      setSelectedOption(null);
       setError(err instanceof Error ? err.message : 'Failed to submit answer');
+    } finally {
+      setTxStatus(null);
+    }
+  };
+
+  const handleNextCard = async () => {
+    try {
+      await loadNextCard();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load next card');
+      setTxStatus(null);
     }
   };
 
@@ -108,7 +143,7 @@ export default function SinglePlayerGame() {
   if (isLoading) {
     return (
       <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
-        <p>Loading game...</p>
+        <p>{txStatus || 'Loading game...'}</p>
       </div>
     );
   }
@@ -148,9 +183,9 @@ export default function SinglePlayerGame() {
           <LyricCard
             lyrics={[
               {
-                text: currentLyric?.text || 'Loading...',
-                title: currentLyric?.title || 'Loading...',
-                artist: currentLyric?.artist || 'Loading...',
+                text: question?.lyric || 'Loading...',
+                title: card?.title || '',
+                artist: card?.artist || '',
               }
             ]}
             isFlipped={isCardFlipped}
@@ -160,17 +195,35 @@ export default function SinglePlayerGame() {
           <StatisticsPanel
             time={`${timeLeft}`}
             potWin={`${round.wager_amount.toString()} STRK`}
-            scores={`${score} / 10`}
+            scores={`${score} / ${totalCards}`}
           />
         </div>
       </div>
 
+      {txStatus && <p className="mt-4 text-sm text-gray-600">{txStatus}</p>}
+
       <SongOptions
-        options={currentLyric?.options || []}
+        options={options}
         onSelect={handleSongSelect}
         selectedOption={selectedOption}
         correctOption={correctOption}
       />
+
+      {isCardFlipped && (
+        <div className="mt-6 flex justify-center">
+          {isRoundFinished ? (
+            <p className="font-semibold">{`Round complete: ${score} / ${totalCards} correct`}</p>
+          ) : (
+            <button
+              onClick={handleNextCard}
+              disabled={!!txStatus}
+              className="px-4 py-2 bg-purple-500 text-white rounded disabled:opacity-50"
+            >
+              Next card
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

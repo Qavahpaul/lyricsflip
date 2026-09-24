@@ -1,3 +1,14 @@
+export type GameStatus = 'idle' | 'playing' | 'ended';
+export type GuessResult = 'correct' | 'incorrect' | null;
+
+export interface GameConfig {
+  genre: string;
+  difficulty: string;
+  duration: string;
+  odds: number;
+  wagerAmount: number;
+}
+
 export interface GameState {
   score: number;
   level: number;
@@ -5,6 +16,13 @@ export interface GameState {
   lastPlayed: Date | null;
   timeLeft: number;
   isTimerRunning: boolean;
+  potentialWin: number;
+  currentRound: number;
+  maxRounds: number;
+  gameStatus: GameStatus;
+  gameConfig: GameConfig;
+  lastGuessResult: GuessResult;
+  roundId: bigint | null;
 }
 
 export interface WagerDetails {
@@ -31,8 +49,13 @@ export interface SongOption {
 export interface GameActions {
   incrementScore: (by: number) => void;
   incrementLevel: () => void;
-  startGame: () => void;
+  increaseScore: () => void;
+  setGuessResult: (result: GuessResult) => void;
+  startGame: (config?: GameConfig) => void;
   endGame: () => void;
+  resetGame: () => void;
+  setGameStatus: (status: GameStatus) => void;
+  setRoundId: (roundId: bigint) => void;
   startTimer: () => void;
   stopTimer: () => void;
   resetTimer: (newTime?: number) => void;

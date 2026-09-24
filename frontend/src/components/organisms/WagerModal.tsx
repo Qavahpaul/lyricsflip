@@ -12,8 +12,7 @@ import { useEffect, useState } from 'react';
 import { Input } from '../atoms/input';
 import { Modal } from './modal';
 import { WagerSummaryContent } from './WagerSummaryModal';
-import { WagerDetails } from '@/store';
-import { useGameStore } from '@/store/game';
+import { WagerDetails, useStore } from '@/store';
 import { useRouter } from 'next/navigation';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import type { Genre } from '@/lib/stellar/types';
@@ -43,7 +42,7 @@ export function WagerModal() {
   });
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const startGame = useGameStore((state) => state.startGame);
+  const startGame = useStore((state) => state.game.startGame);
   const isModalOpen = isOpen && modalType === 'wager';
 
   // Initialize Stellar setup

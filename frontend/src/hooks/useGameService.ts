@@ -1,12 +1,12 @@
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import type { Genre } from '@/lib/stellar/types';
 import { useModalStore } from '@/store/modal-store';
-import { useGameStore } from '@/store/game';
+import { useStore } from '@/store';
 
 export const useGameService = () => {
   const { systemCalls } = useStellar();
   const { closeModal } = useModalStore();
-  const { setRoundId } = useGameStore();
+  const setRoundId = useStore((state) => state.game.setRoundId);
 
   const createRound = async (genre: Genre) => {
     if (!systemCalls) {

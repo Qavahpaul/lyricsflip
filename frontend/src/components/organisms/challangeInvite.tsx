@@ -1,41 +1,35 @@
 import { Copy, Lightbulb, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import type { Round } from '@/lib/stellar/types';
 
-export default function ChallengeInvite() {
+interface ChallengeInviteProps {
+  round: Round;
+  players: string[];
+  isReady: boolean;
+  isBusy: boolean;
+  onReady: () => void;
+}
+
+export default function ChallengeInvite({
+  round,
+  players,
+  isReady,
+  isBusy,
+  onReady,
+}: ChallengeInviteProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { systemCalls } = useStellar();
   const [isCopied, setIsCopied] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [roundData, setRoundData] = useState<any>(null);
 
-  const roundId = searchParams.get('roundId');
-  const inviteCode = roundId || '';
-
-  useEffect(() => {
-    const fetchRoundData = async () => {
-      if (!roundId || !systemCalls) return;
-
-      try {
-        setIsLoading(true);
-        const data = await systemCalls.getRound(BigInt(roundId));
-        setRoundData(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch round data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchRoundData();
-  }, [roundId, systemCalls]);
+  const inviteCode = round.round_id.toString();
+  const inviteLink =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/multiplayer/${inviteCode}`
+      : '';
 
   const handleCopyCode = () => {
     navigator.clipboard
-      .writeText(inviteCode)
+      .writeText(inviteLink)
       .then(() => {
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
@@ -54,89 +48,20 @@ export default function ChallengeInvite() {
       navigator
         .share({
           title: 'Join my challenge!',
-          text: `Join my challenge using this code: ${inviteCode}`,
-          url: window.location.href,
+          text: `Join my LyricsFlip challenge (round ${inviteCode})`,
+          url: inviteLink,
         })
         .catch((err) => console.log('Error sharing:', err));
     } else {
       handleCopyCode();
-      alert('Invite code copied to clipboard!');
+      alert('Invite link copied to clipboard!');
     }
   };
 
-  const handleStartChallenge = async () => {
-    if (!roundId || !systemCalls) return;
-
-    try {
-      setIsLoading(true);
-      await systemCalls.startRound(BigInt(roundId));
-      router.push(`/multiplayer/game?roundId=${roundId}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start challenge');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAccept = async () => {
-    if (!systemCalls) {
-      setError('System calls not initialized');
-      return;
-    }
-
-    if (!roundId) return;
-
-    try {
-      const data = await systemCalls.getRound(BigInt(roundId));
-      // ... rest of the code
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get round data');
-    }
-  };
-
-  const handleStart = async () => {
-    if (!systemCalls) {
-      setError('System calls not initialized');
-      return;
-    }
-
-    if (!roundId) return;
-
-    try {
-      await systemCalls.startRound(BigInt(roundId));
-      // ... rest of the code
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start round');
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="w-full h-auto bg-black/10 flex justify-end p-10">
-        <div className="w-full max-w-[580px] min-h-[960px] h-full bg-white rounded-[16px] border-[1.5px] border-[#DBE2E8] p-[32px] flex items-center justify-center">
-          <p className="text-[24px] font-[600]">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="w-full h-auto bg-black/10 flex justify-end p-10">
-        <div className="w-full max-w-[580px] min-h-[960px] h-full bg-white rounded-[16px] border-[1.5px] border-[#DBE2E8] p-[32px] flex items-center justify-center">
-          <p className="text-[24px] font-[600] text-red-500">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Mock challenge data - in a real app, this would come from props or state
   const challengeData = {
-    gameMode: 'Wager (Multi Player)',
-    participants: 4,
-    wagerAmount: 6,
-    wagerValue: '10,000 STRK (100 USD)',
-    potentialWin: '80,000 STRK (800 USD)',
+    gameMode: `Wager (Multi Player) · ${round.genre}`,
+    participants: players.length,
+    wagerAmount: round.wager_amount.toString(),
   };
 
   return (
@@ -163,7 +88,10 @@ export default function ChallengeInvite() {
         </div>
 
         <div className="flex justify-center items-center space-x-3 my-5">
-          <h1 aria-label="invite Code" className="sm:text-[48px] text-[30px] font-[800]">
+          <h1
+            aria-label="invite Code"
+            className="sm:text-[48px] text-[30px] font-[800]"
+          >
             {inviteCode}
           </h1>
           <span
@@ -191,16 +119,6 @@ export default function ChallengeInvite() {
             <span className="p-[12px] text-[#636363]">Wager Amount</span>
             <span className="font-[500]">{challengeData.wagerAmount}</span>
           </div>
-          <div className="flex w-full border-b border-black/30 justify-between text-[16px] font-[400]">
-            <span className="p-[12px] text-[#636363]">Wager Value</span>
-            <span className="font-[500]">{challengeData.wagerValue}</span>
-          </div>
-          <div className="flex w-full border-b border-black/30 justify-between text-[16px] font-[400]">
-            <span className="p-[12px] text-[#636363]">You Win</span>
-            <span className="font-[600] text-[#9747FF]">
-              {challengeData.potentialWin}
-            </span>
-          </div>
         </div>
 
         <div className="border-[0.5px] p-[16px] rounded-[12px] gap-[17px] bg-[#F0F0F0] flex flex-col mt-5">
@@ -221,14 +139,19 @@ export default function ChallengeInvite() {
             onClick={handleShareInvite}
             className="w-full rounded-full bg-transparent border border-[#9747FF] hover:bg-[#9747FF] text-[#9747FF] py-[24px] hover:text-white text-[16px] font-[600] transition-all duration-200"
           >
-            Share Invite Code
+            Share Invite Link
           </button>
           <button
             type="button"
-            onClick={handleStartChallenge}
+            onClick={onReady}
+            disabled={isReady || isBusy}
             className="w-full rounded-full bg-[#9747FF] border border-[#9747FF] hover:bg-transparent text-white py-[24px] hover:text-[#9747FF] text-[16px] font-[600] transition-all duration-200"
           >
-            Start Challenge
+            {isReady
+              ? 'Waiting for players…'
+              : isBusy
+                ? 'Submitting…'
+                : 'Ready'}
           </button>
         </div>
       </div>

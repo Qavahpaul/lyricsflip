@@ -1,10 +1,23 @@
 {
-  "dependencies": {
-    "@nestjs/platform-socket.io": "^11.0.10",
-    "@nestjs/swagger": "^11.0.2",
-    "@nestjs/throttler": "^6.4.0",
-    "@nestjs/websockets": "^11.0.10",
-    "@react-navigation/drawer": "^7.1.1",
-    "swagger-ui-express": "^5.0.1"
+  "name": "lyricsflip",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LyricsFlip - A real-time multiplayer music game",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run start:dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:backend": "npm --prefix backend run build",
+    "build": "npm run build:frontend && npm run build:backend",
+    "start:backend": "npm --prefix backend run start:prod",
+    "lint:frontend": "npm --prefix frontend run lint",
+    "lint:backend": "npm --prefix backend run lint",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "test:backend": "npm --prefix backend run test",
+    "test:e2e:frontend": "npm --prefix frontend run test:e2e"
   }
 }

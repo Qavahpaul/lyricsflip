@@ -18,11 +18,6 @@ import { WsExceptionFilter } from 'src/filters/ws-exception.filter';
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({
   namespace: 'game',
-  cors: {
-    origin: '*', // Configure according to your needs
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
   pingInterval: 10000,
   pingTimeout: 5000,
   connectTimeout: 45000,

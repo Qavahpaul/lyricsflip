@@ -24,12 +24,13 @@ async function bootstrap() {
     }),
   );
 
+  const corsOrigin = config.get<string>('cors.origin') ?? '*';
   app.enableCors({
-    origin: config.get<string>('cors.origin') ?? '*',
+    origin: corsOrigin,
     credentials: true,
   });
 
-  app.useWebSocketAdapter(new SocketIOAdapter(app));
+  app.useWebSocketAdapter(new SocketIOAdapter(app, config));
 
   app.useGlobalInterceptors(new LoggingInterceptor());
 

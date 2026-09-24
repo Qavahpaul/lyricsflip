@@ -18,11 +18,6 @@ import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({
   namespace: 'game',
-  cors: {
-    origin: '*', // Configure according to your needs
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
   pingInterval: 10000,
   pingTimeout: 5000,
   connectTimeout: 45000,

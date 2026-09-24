@@ -12,9 +12,6 @@ import {
   
   @WebSocketGateway({
     namespace: '/resource-manager',
-    cors: {
-      origin: '*',
-    },
   })
   export class ResourceManagerGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()

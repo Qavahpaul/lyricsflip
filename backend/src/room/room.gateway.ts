@@ -9,9 +9,6 @@ import {
   import { Logger } from '@nestjs/common';
   
   @WebSocketGateway({
-    cors: {
-      origin: '*',
-    },
     namespace: 'rooms',
   })
   export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {

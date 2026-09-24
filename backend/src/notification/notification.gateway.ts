@@ -20,7 +20,7 @@ const userRoom = (userId: string) => `user:${userId}`;
  * achievements, progression). Clients connect with `auth: { token }` and are
  * joined to a room for their user id.
  */
-@WebSocketGateway({ namespace: 'notifications', cors: { origin: '*' } })
+@WebSocketGateway({ namespace: 'notifications' })
 export class NotificationGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;

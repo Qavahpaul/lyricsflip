@@ -41,6 +41,7 @@ here; other modules import that module (or its entity) instead of redefining it.
 | Game | `game/` | Built-in game modes, scoring strategies, matchmaking, stats, `CustomGameMode` | `/game-modes` | `/game` |
 | Game sessions | `game-session/` | `GameSession` (`game_sessions`) for every mode, tournaments and insights | `/game-session` | — |
 | Notifications | `notification/` | `Notification` (`notifications`); also pushes achievement and progression events | `/notifications` | `/notifications` |
+| Chain indexer | `indexer/` | Soroban event indexing | — | `/indexer` |
 | Lesson progress | `music-education/` | `LessonProgress` (`lesson_progress`) | `/lessons/progress` | — |
 | Practice progress | `practice/` | `PracticeProgress` (`practice_progress`) | `/practice/progress` | — |
 

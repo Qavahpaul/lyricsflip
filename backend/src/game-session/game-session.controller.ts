@@ -6,6 +6,7 @@ import {
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
+import { AnswerThrottle } from '../common/throttler/throttle-limits';
 import { GameSessionService } from './providers/game-session.service';
 import { AccessTokenGuard } from '../auth/guard/access-token/access-token.guard';
 import { CreateGameSessionDto } from './dto/create-game-session.dto';
@@ -44,6 +45,7 @@ export class GameSessionController {
 
   // Submit a guess for an ongoing game session.
   @Post(':id/guess')
+  @AnswerThrottle()
   @ApiOperation({
     summary: 'Submit a guess for a game session',
     description:

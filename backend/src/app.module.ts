@@ -32,10 +32,14 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { Redis } from 'ioredis';
+import { RedisThrottlerStorage } from './common/throttler/redis-throttler.storage';
+import { DEFAULT_THROTTLE } from './common/throttler/throttle-limits';
 import { ReferralModule } from './referral/referral.module';
 import { GameInsightsModule } from './game-insights/game-insights.module';
 import { PaginationModule } from './common/pagination/pagination.module';
 import { StateRecoveryModule } from './state-recovery/state-recovery.module';
+import { IndexerModule } from './indexer/indexer.module';
 
 @Module({
   imports: [
@@ -53,9 +57,16 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
     GameModule,
     PaginationModule,
     EventEmitterModule.forRoot(),
-    ThrottlerModule.forRoot({
-      ttl: 60, // Time window in seconds (1 minute)
-      limit: 10, // Max 10 requests per minute per user/IP
+    // Global limit for general reads; /auth/* and answer submission apply
+    // stricter per-route limits (see common/throttler/throttle-limits.ts).
+    // Redis-backed storage keeps counts consistent across instances.
+    ThrottlerModule.forRootAsync({
+      useFactory: () => ({
+        throttlers: [{ name: 'default', ...DEFAULT_THROTTLE }],
+        storage: new RedisThrottlerStorage(
+          new Redis(process.env.REDIS_URL ?? 'redis://127.0.0.1:6379'),
+        ),
+      }),
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -84,6 +95,7 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
     ReferralModule,
     StateRecoveryModule,
     GameInsightsModule,
+    IndexerModule,
   ],
   controllers: [AppController],
   providers: [

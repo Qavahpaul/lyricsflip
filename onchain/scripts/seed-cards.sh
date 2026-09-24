@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# seed-cards.sh — read onchain/seed/cards.json and invoke add_card for each
+# seed-cards.sh — read seed/songs.json and invoke add_card for each
 # entry against the deployed LyricsFlip game contract.
 #
 # Usage:
@@ -19,7 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ONCHAIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${ONCHAIN_DIR}/.." && pwd)"
 FRONTEND_ENV="${REPO_ROOT}/frontend/.env.local"
-CARDS_JSON="${ONCHAIN_DIR}/seed/cards.json"
+CARDS_JSON="${REPO_ROOT}/seed/songs.json"
 
 IDENTITY="me"
 

@@ -13,6 +13,7 @@ import jwtConfig from './authConfig/jwt.config';
 import { JwtModule } from '@nestjs/jwt';
 import { AccessTokenGuard } from './guard/access-token/access-token.guard';
 import { PasswordResetProvider } from './providers/password-reset.provider';
+import { WsAuthenticator } from './providers/ws-authenticator.provider';
 
 @Module({
   controllers: [AuthController],
@@ -27,12 +28,13 @@ import { PasswordResetProvider } from './providers/password-reset.provider';
     AccessTokenGuard,
     Reflector, 
     GenerateTokensProvider,
+    WsAuthenticator,
   ],
   imports: [
     forwardRef(() => UserModule),
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
   ],
-  exports: [AuthService, HashingProvider, AccessTokenGuard],
+  exports: [AuthService, HashingProvider, AccessTokenGuard, WsAuthenticator, JwtModule],
 })
 export class AuthModule {}

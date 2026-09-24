@@ -4,7 +4,6 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { GameSessionModule } from './game-session/game-session.module';
-import { SongModule } from './song/song.module';
 import { WagerModule } from './wager/wager.module';
 import { RewardModule } from './reward/reward.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
@@ -24,14 +23,13 @@ import { QuestionsModule } from './questions/questions.module';
 import { PowerUpModule } from './power-ups/power-up.module';
 import { TournamentService } from './tournament/tournament.service';
 import { TournamentModule } from './tournament/tournament.module';
-import { GameGateway } from './websocket-game comms/providers/gamegateway';
-import { GameModule } from './websocket-game comms/game.module';
+import { GameModule } from './game/game.module';
 import { AchievementModule } from './achievement/achievement.module';
 import { MusicTheoryLessonModule } from './music-education/music-theory-lesson.module';
-import { GameModeModule } from './game-mode/game-mode.module';
-import { SongGenreModule } from './song-genre/song-genre.module';
+import { RoomModule } from './room/room.module';
 import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ReferralModule } from './referral/referral.module';
@@ -44,7 +42,6 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
     AuthModule,
     UserModule,
     GameSessionModule,
-    SongModule,
     WagerModule,
     RewardModule,
     LeaderboardModule,
@@ -55,6 +52,7 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
     ConfigModule,
     GameModule,
     PaginationModule,
+    EventEmitterModule.forRoot(),
     ThrottlerModule.forRoot({
       ttl: 60, // Time window in seconds (1 minute)
       limit: 10, // Max 10 requests per minute per user/IP
@@ -82,8 +80,7 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
     AchievementModule,
     SocialModule,
     MusicTheoryLessonModule,
-    GameModeModule,
-    SongGenreModule,
+    RoomModule,
     ReferralModule,
     StateRecoveryModule,
     GameInsightsModule,
@@ -104,7 +101,6 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
       useClass: GlobalInterceptor,
     },
     TournamentService,
-    GameGateway,
   ],
 })
 export class AppModule {}

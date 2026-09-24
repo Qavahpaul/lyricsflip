@@ -26,6 +26,34 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Module map
+
+Each concern has exactly one module. Entities are owned by the module listed
+here; other modules import that module (or its entity) instead of redefining it.
+
+| Concern | Module | Owns | HTTP | WebSocket namespace |
+| --- | --- | --- | --- | --- |
+| Auth | `auth/` | JWT issue/verify, `AccessTokenGuard` (global), `JwtAuthGuard`, `WsAuthenticator`, `@CurrentUser()` | `/auth` | — |
+| Users | `user/` | `User` (`users`, incl. `stellarAddress` for wallet login) | `/user` | — |
+| Players | `player/` | `Player` (`players`), `PlayerStatus` | — | — |
+| Songs | `songs/` | `Song` (`songs`, mirrors the contract `Card`), `Tag`, `UserGenrePreference`, `Genre` enum | `/songs`, `/songs/genres` | — |
+| Rooms | `room/` | `Room` (`rooms`), `PlayerRoom`; room CRUD, join/leave, player presence | `/rooms` | `/rooms` |
+| Game | `game/` | Built-in game modes, scoring strategies, matchmaking, stats, `CustomGameMode` | `/game-modes` | `/game` |
+| Game sessions | `game-session/` | `GameSession` (`game_sessions`) for every mode, tournaments and insights | `/game-session` | — |
+| Notifications | `notification/` | `Notification` (`notifications`); also pushes achievement and progression events | `/notifications` | `/notifications` |
+| Lesson progress | `music-education/` | `LessonProgress` (`lesson_progress`) | `/lessons/progress` | — |
+| Practice progress | `practice/` | `PracticeProgress` (`practice_progress`) | `/practice/progress` | — |
+
+Rules of thumb:
+
+- One WebSocket namespace per concern. Server-to-user pushes go through
+  `/notifications`, which joins each authenticated socket to a `user:<id>` room.
+  Emit an `EventEmitter2` event and handle it in `NotificationGateway` rather than
+  adding a new gateway.
+- The only genre enum is `songs/enums/genre.enum.ts`. It must match the contract's
+  `Genre` and the frontend's `GENRE_VALUES`.
+- `src/entity-metadata.spec.ts` fails if two `@Entity` classes map to the same table.
+
 ## Project setup
 
 ```bash

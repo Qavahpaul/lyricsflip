@@ -33,6 +33,10 @@ export interface SystemCalls {
   nextCard: (roundId: bigint) => Promise<Card>;
   submitAnswer: (roundId: bigint, answer: Answer) => Promise<boolean>;
   addCard: (card: Omit<Card, 'card_id'>) => Promise<void>;
+  /** Adds up to `MAX_CARDS_PER_BATCH` (20) cards in one transaction. */
+  addCards: (cards: Omit<Card, 'card_id'>[]) => Promise<bigint[]>;
+  getCard: (cardId: bigint) => Promise<Card>;
+  getCardsCount: () => Promise<bigint>;
   setCardsPerRound: (value: number) => Promise<void>;
   setRole: (recipient: string, isEnable: boolean) => Promise<void>;
   isAdmin: (address: string) => Promise<boolean>;
@@ -95,6 +99,9 @@ type LyricsFlipContract = {
     answer: Answer;
   }) => Promise<contract.AssembledTransaction<boolean>>;
   add_card: (args: { caller: string; card: WireCard }) => Promise<contract.AssembledTransaction<null>>;
+  add_cards: (args: { caller: string; cards: WireCard[] }) => Promise<contract.AssembledTransaction<bigint[]>>;
+  get_card: (args: { card_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
+  get_cards_count: () => Promise<contract.AssembledTransaction<bigint>>;
   set_cards_per_round: (args: { caller: string; value: number }) => Promise<contract.AssembledTransaction<null>>;
   set_role: (args: {
     caller: string;
@@ -186,6 +193,24 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
       await submit(await client.add_card({ caller, card: cardToWire(card) }));
+    },
+
+    addCards: async (cards) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      return submit(await client.add_cards({ caller, cards: cards.map(cardToWire) }));
+    },
+
+    getCard: async (cardId) => {
+      const client = await getGameClient(config, publicKey);
+      const assembled = await client.get_card({ card_id: cardId });
+      return cardFromWire(assembled.result);
+    },
+
+    getCardsCount: async () => {
+      const client = await getGameClient(config, publicKey);
+      const assembled = await client.get_cards_count();
+      return assembled.result;
     },
 
     setCardsPerRound: async (value) => {

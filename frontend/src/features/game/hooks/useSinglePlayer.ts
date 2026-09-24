@@ -1,6 +1,5 @@
 import { MOCK_LYRICS } from '@/mock/mock';
-import { LyricData, SongOption } from '@/store';
-import { useGameStore, stopGameTimer } from '@/store/game';
+import { LyricData, SongOption, useStore } from '@/store';
 import { useEffect, useState } from 'react';
 
 const shuffleArray = <T>(array: T[]): T[] => {
@@ -13,7 +12,7 @@ const shuffleArray = <T>(array: T[]): T[] => {
 };
 
 export const useSinglePlayer = (genre: string) => {
-  const gameStore = useGameStore();
+  const gameStore = useStore((state) => state.game);
   const [currentLyric, setCurrentLyric] = useState<LyricData | null>(null);
   const [nextLyric, setNextLyric] = useState<LyricData | null>(null);
   const [isGameStarted, setIsGameStarted] = useState(false);
@@ -37,7 +36,7 @@ export const useSinglePlayer = (genre: string) => {
       setIsCardFlipped(false);
     }
     return () => {
-      stopGameTimer(); // Cleanup timer on unmount
+      gameStore.stopTimer(); // Cleanup timer on unmount
     };
   }, [genre, gameStore.gameStatus]);
 
@@ -105,7 +104,6 @@ export const useSinglePlayer = (genre: string) => {
       isMultiplayer: false,
     });
     gameStore.endGame();
-    stopGameTimer();
   };
 
   const resetGame = () => {

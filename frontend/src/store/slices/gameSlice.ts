@@ -1,5 +1,13 @@
 import { StateCreator } from 'zustand';
-import { GameState, GameActions, Store } from '../Types';
+import { GameState, GameActions, GameConfig, Store } from '../Types';
+
+export const initialGameConfig: GameConfig = {
+  genre: '',
+  difficulty: '',
+  duration: '',
+  odds: 0,
+  wagerAmount: 0,
+};
 
 export const initialGameState: GameState = {
   score: 0,
@@ -8,7 +16,17 @@ export const initialGameState: GameState = {
   lastPlayed: null,
   timeLeft: 15,
   isTimerRunning: false,
+  potentialWin: 0,
+  currentRound: 0,
+  maxRounds: 5,
+  gameStatus: 'idle',
+  gameConfig: initialGameConfig,
+  lastGuessResult: null,
+  roundId: null,
 };
+
+const durationToSeconds = (duration: string) =>
+  duration === '5 mins' ? 300 : duration === '10 mins' ? 600 : 900;
 
 export const createGameSlice: StateCreator<
   Store,
@@ -32,13 +50,36 @@ export const createGameSlice: StateCreator<
       });
     },
 
-    startGame: () => {
+    increaseScore: () => {
+      set((state) => {
+        state.game.score += 1;
+        state.game.currentRound += 1;
+        state.game.lastGuessResult = 'correct';
+      });
+    },
+
+    setGuessResult: (result) => {
+      set((state) => {
+        state.game.lastGuessResult = result;
+      });
+    },
+
+    startGame: (config) => {
       set((state) => {
         state.game.isPlaying = true;
         state.game.score = 0;
         state.game.level = 1;
-        state.game.timeLeft = 15; // Reset timer on game start
+        state.game.currentRound = 0;
+        state.game.lastGuessResult = null;
         state.game.isTimerRunning = false;
+        state.game.gameStatus = 'playing';
+        if (config) {
+          state.game.gameConfig = config;
+          state.game.potentialWin = config.wagerAmount * config.odds;
+          state.game.timeLeft = durationToSeconds(config.duration);
+        } else {
+          state.game.timeLeft = 15; // Reset timer on game start
+        }
       });
     },
 
@@ -47,6 +88,27 @@ export const createGameSlice: StateCreator<
         state.game.isPlaying = false;
         state.game.lastPlayed = new Date();
         state.game.isTimerRunning = false; // Stop timer on game end
+        state.game.gameStatus = 'ended';
+      });
+    },
+
+    resetGame: () => {
+      set((state) => {
+        Object.assign(state.game, initialGameState, {
+          gameConfig: { ...initialGameConfig },
+        });
+      });
+    },
+
+    setGameStatus: (status) => {
+      set((state) => {
+        state.game.gameStatus = status;
+      });
+    },
+
+    setRoundId: (roundId) => {
+      set((state) => {
+        state.game.roundId = roundId;
       });
     },
 

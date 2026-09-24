@@ -3,8 +3,8 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools, persist } from 'zustand/middleware';
-import { createGameSlice } from './slices/GameSlicess';
-import { createUserSlice } from './slices/UserSlices';
+import { createGameSlice } from './slices/gameSlice';
+import { createUserSlice } from './slices/userSlice';
 import { Store } from './Types';
 
 export const useStore = create<Store>()(

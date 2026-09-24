@@ -1,6 +1,6 @@
 // src/components/GameTimerDisplay.tsx
 import { useEffect } from 'react';
-import { useStore } from '@/store/GameStores';
+import { useStore } from '@/store';
 import { useGameTimer } from '../../features/game/hooks/useGameTimer';
 
 export const GameTimerDisplay = () => {

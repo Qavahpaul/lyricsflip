@@ -1,6 +1,6 @@
 // src/features/game/hooks/useGameTimer.ts
 import { useEffect } from 'react';
-import { useStore } from '@/store/GameStores';
+import { useStore } from '@/store';
 
 interface UseGameTimerReturn {
   timeLeft: number;

@@ -41,7 +41,7 @@ interface WebSocketMessageEvent {
 
 // Mock data for demonstration
 const mockRoomData: RoomData = {
-  id: 'sample-room-id',
+  id: '',
   name: 'Wager (Multi Player)',
   description:
     'Oorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum,',
@@ -272,7 +272,7 @@ export function useMultiplayerRoom({
       if (!roomData) {
         console.log('Fallback: Setting mock room data directly');
         setIsConnected(true);
-        setRoomData(mockRoomData);
+        setRoomData({ ...mockRoomData, id: roomId });
       }
     }, 2000);
 

@@ -15,10 +15,12 @@ import { UserDTO } from './../user/dtos/create-user.dto';
 import { RefreshTokenDto } from './dtos/refresh-token.dto';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
+import { AuthThrottle } from '../common/throttler/throttle-limits';
 
 
 @ApiTags('auth') // Groups all endpoints under the 'auth' tag in Swagger
 @Controller('auth')
+@AuthThrottle() // Stricter limit for every /auth/* route
 export class AuthController {
   constructor(
     // Injecting AuthService

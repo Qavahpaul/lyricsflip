@@ -4,7 +4,6 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { GameSessionModule } from './game-session/game-session.module';
-import { SongModule } from './song/song.module';
 import { WagerModule } from './wager/wager.module';
 import { RewardModule } from './reward/reward.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
@@ -26,27 +25,29 @@ import { QuickGameModule } from './quick-game/quick-game.module';
 import { PowerUpModule } from './power-ups/power-up.module';
 import { TournamentService } from './tournament/tournament.service';
 import { TournamentModule } from './tournament/tournament.module';
-import { GameGateway } from './websocket-game comms/providers/gamegateway';
-import { GameModule } from './websocket-game comms/game.module';
+import { GameModule } from './game/game.module';
 import { AchievementModule } from './achievement/achievement.module';
 import { MusicTheoryLessonModule } from './music-education/music-theory-lesson.module';
-import { GameModeModule } from './game-mode/game-mode.module';
-import { SongGenreModule } from './song-genre/song-genre.module';
+import { RoomModule } from './room/room.module';
 import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { Redis } from 'ioredis';
+import { RedisThrottlerStorage } from './common/throttler/redis-throttler.storage';
+import { DEFAULT_THROTTLE } from './common/throttler/throttle-limits';
 import { ReferralModule } from './referral/referral.module';
 import { GameInsightsModule } from './game-insights/game-insights.module';
 import { PaginationModule } from './common/pagination/pagination.module';
 import { StateRecoveryModule } from './state-recovery/state-recovery.module';
+import { IndexerModule } from './indexer/indexer.module';
 
 @Module({
   imports: [
     AuthModule,
     UserModule,
     GameSessionModule,
-    SongModule,
     WagerModule,
     RewardModule,
     LeaderboardModule,
@@ -57,9 +58,17 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
     ConfigModule,
     GameModule,
     PaginationModule,
-    ThrottlerModule.forRoot({
-      ttl: 60, // Time window in seconds (1 minute)
-      limit: 10, // Max 10 requests per minute per user/IP
+    EventEmitterModule.forRoot(),
+    // Global limit for general reads; /auth/* and answer submission apply
+    // stricter per-route limits (see common/throttler/throttle-limits.ts).
+    // Redis-backed storage keeps counts consistent across instances.
+    ThrottlerModule.forRootAsync({
+      useFactory: () => ({
+        throttlers: [{ name: 'default', ...DEFAULT_THROTTLE }],
+        storage: new RedisThrottlerStorage(
+          new Redis(process.env.REDIS_URL ?? 'redis://127.0.0.1:6379'),
+        ),
+      }),
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -90,11 +99,11 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
     AchievementModule,
     SocialModule,
     MusicTheoryLessonModule,
-    GameModeModule,
-    SongGenreModule,
+    RoomModule,
     ReferralModule,
     StateRecoveryModule,
     GameInsightsModule,
+    IndexerModule,
   ],
   controllers: [AppController],
   providers: [
@@ -112,7 +121,6 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
       useClass: GlobalInterceptor,
     },
     TournamentService,
-    GameGateway,
   ],
 })
 export class AppModule implements NestModule {
